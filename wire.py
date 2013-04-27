@@ -6,19 +6,18 @@ few samples and play them back immediately).
 from multiprocessing import Process, Queue
 import pyaudio
 import struct
-
+import numpy
 import plotqueue
 
-q = Queue()
-p = Process(target=plotqueue.f, args=(q,))
-p.start()
-
-CHUNK = 256
+CHUNK = 1024
 CHANNELS = 1
-RATE = 44100
-RECORD_SECONDS = 5
+RATE = 11025
 FORMAT = pyaudio.paInt16 
 SHORT_NORMALIZE = (1.0/32768.0)
+
+q = Queue()
+p = Process(target=plotqueue.f, args=(q,RATE))
+p.start()
 
 p = pyaudio.PyAudio()
 stream = p.open(format=FORMAT,
@@ -30,18 +29,17 @@ stream = p.open(format=FORMAT,
 
 print("* recording")
 delay=0
-oldbuf = []
+i=0
 
-for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+while True:
+    i += 1
     data = stream.read(CHUNK)
+    stream.write(data, CHUNK)
     count = len(data)/2 # 2 bytes / sample
     format = "%dh"%(count)
-    shorts = struct.unpack( format, data )
-    rms = sum([(x*SHORT_NORMALIZE)**2 for x in shorts])**.5 /  count
-    q.put(rms)
-    oldbuf.append(data)
-    if (len(oldbuf) > delay):
-        stream.write(oldbuf[i-delay], CHUNK)
+    shorts = numpy.array(struct.unpack( format, data ))
+    shorts = shorts * SHORT_NORMALIZE
+    q.put(shorts)
 
 print("* done")
 
