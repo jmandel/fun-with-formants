@@ -38,13 +38,16 @@ def f(q, RATE):
 
                 shorts = shorts * np.hamming(len(shorts))
                 shorts = lfilter([1], [1, .63], shorts)
-                A = lpc.lpc_ref(shorts, 8)
+                A = lpc.lpc_ref(shorts, 9)
                 roots = np.roots(A)
                 roots = roots[np.imag(roots)<0]
                 bw= -.5 * RATE / 2 / math.pi * np.log(np.abs(roots))
                 angs = np.arctan2(np.imag(roots), np.real(roots))
                 angs = angs * [RATE / 2 / math.pi]
+                angs = np.absolute(angs)
                 order = np.argsort(angs)
+                #for v in  zip(angs, bw): print v
+                #print "\n\n***"
                 tstr= "    ".join(["{0:10d} hz".format(int(angs[order[i]])) for i in range(len(order)) if bw[order[i]] < 400])
 
 
@@ -57,17 +60,14 @@ def f(q, RATE):
                 fft = np.fft.rfft(shorts)
                 afft = np.absolute(fft)
                 #sizeprint np.arange(len(fft)), np.absolute(fft)
-                if (l == None):
-                    print "initialize plot"
-                    l, = plt.plot(np.arange(len(afft)), afft)
-                else:
-                    #print "reset plot", len(afft)
-                    l.set_ydata(afft)
-                
-                TOP = max(TOP, max(afft))
-                plt.ylim([0,2])
-                    
-                plt.draw()
+                plt.clf()
+                plt.xlim([0,3000])
+                plt.ylim([0, 3000])
+                print len(angs)
+                print [angs[order[i]] for i in range(len(order))]
+                h=plt.plot(angs[order[1]], angs[order[2]], 'ro')
+                if np.mean(shorts**2) > 10e-8:
+                    plt.draw()
 
                 #rms = sum([x**2 for x in shorts])**.5 /  len(shorts)
                 #news.append(rms)
